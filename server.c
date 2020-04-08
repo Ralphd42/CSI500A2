@@ -12,7 +12,7 @@
 int getFileSize( char * fname, char c);
 void error(const char *msg);
 void ToUpperCase( char * fName);
-
+void sendFileToClient( int clientDesc, char * fName);
 int main(int argc, char *argv[])
 {
    int sockfd, newsockfd, portno;
@@ -57,35 +57,30 @@ int main(int argc, char *argv[])
          printf("Here is the message: %s\n",buffer);
          if ( strncmp(buffer, "count",5)==0 )
          {
-            if( strlen (buffer)<9)
+            char * cntFile = (buffer+8);
+            printf("Fname = %s\n", cntFile);
+            char cntChar = buffer[6];
+            int numchars =getFileSize(cntFile,cntChar);
+            if( numchars<0)
             {
-               perror("invalid counting input");
-               write(newsockfd,"Invalid counting input",23);
+               write(newsockfd,"Failed to open File",19);
             }else
             {
-               char * cntFile = (buffer+8);
-               printf("Fname = %s\n", cntFile);
-               char cntChar = buffer[6];
-               int numchars =getFileSize(cntFile,cntChar);
-               if( numchars<0)
+               FILE* fpw = fdopen(dup(newsockfd),"w");
+               if(fpw==NULL)
                {
-                  write(newsockfd,"Failed to open File",19);
-               }else{
-               //n = write(newsockfd,"I got your message",18);
-                  FILE* fpw = fdopen(dup(newsockfd),"w");
-                  if(fpw==NULL)
-                  {
-                     perror("FAILED TO OPEN FD");
-                  }
-                  fprintf(fpw,"FILE %s has %d of %c",cntFile , numchars, cntChar  );
-                  printf("\nSent Count to client\n");
-                  fclose(fpw);
+                  error("FAILED TO OPEN FD");
                }
-         
+               fprintf(fpw,"FILE %s has %d of %c",cntFile , numchars, cntChar  );
+               printf("\nSent Count to client\n");
+               fclose(fpw);
             }
          }else if ( strncmp(buffer, "toUpper",7)==0)
          {
-            n = write(newsockfd,"I got your message",18);
+            char * cntFile = (buffer+8);
+            //ToUpperCase(cntFile);  commented out because we dont want to make the file uppercase on server
+            sendFileToClient(newsockfd,cntFile);
+
          }else{
             n = write(newsockfd,"Unknown input",13);
          }
@@ -98,6 +93,7 @@ int main(int argc, char *argv[])
       close(sockfd);
       return 0; 
    }
+ 
 /*
    gets character count
    returns -1 on error
@@ -129,6 +125,7 @@ int getFileSize( char * fname, char ch)
 
 /*
    Converts a file to uppercase
+   this won't be used.  We will keep server side file lowercase
 */
 void ToUpperCase( char * fName)
 {
@@ -147,7 +144,40 @@ void ToUpperCase( char * fName)
    }
    fclose(fp);
 }
+/*sends a file to a filedescriptor
+   for this application that will be a socket   
+*/
+void sendFileToClient( int clientDesc, char * fName)
+{
+   FILE *fp = fopen(fName, "r");
+   FILE* fpw = fdopen(dup(clientDesc),"w");
+   if(fp ==NULL)
+   {
+      error("Failed to open input file");
+      return;
+   }
+   if(fpw ==NULL)
+   {
+      error("Failed to open output socket as FILE");
+      return;
+   }
+   char c=getc(fp);
+   while(c != EOF)
+   {
+      c = toupper(c);
+      putc(c,fpw);
+      c=getc(fp);
+   }
+   putc(EOF,fpw);
+   printf("Sent file");
+   fclose (fp);
+   fclose (fpw);
+}
 
+
+
+
+/*fatal error notifies user of error and closes app*/
 void error(const char *msg)
 {
     perror(msg);

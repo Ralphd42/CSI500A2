@@ -65,17 +65,22 @@ int main(int argc, char *argv[])
     readlen=getline(&inBuff,&bufflen,stdin);
     //while(readlen!=-1)
   //  fgets(buffer,255,stdin);
-    while( 1)
+    while( readlen>0)
     {
-         n = write(sockfd,inBuff,strlen(inBuff));
-    if (n < 0) 
-         error("ERROR writing to socket");
-    bzero(buffer,256);
-    n = read(sockfd,buffer,255);
+        n = write(sockfd,inBuff,strlen(inBuff));
+         
+        
+        
+        
+        
+        if (n < 0) 
+            error("ERROR writing to socket");
+        bzero(buffer,256);
+        n = read(sockfd,buffer,255);
     
-    if (n < 0) 
-         error("ERROR reading from socket");
-    printf("-!%s!-\n",buffer);
+        if (n < 0) 
+            error("ERROR reading from socket");
+        printf("-!%s!-\n",buffer);
         readlen=getline(&inBuff,&bufflen,stdin);
         printf("IB %s\n",inBuff);
     }
